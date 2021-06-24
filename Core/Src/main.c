@@ -63,7 +63,7 @@ const osThreadAttr_t myTaskGpio_attributes = {
 };
 /* USER CODE BEGIN PV */
 modbusHandler_t ModbusH;
-uint16_t ModbusDATA[8];
+uint16_t ModbusDATA[9];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -128,6 +128,10 @@ int main(void)
   ModbusInit(&ModbusH);
   //Start capturing traffic on serial Port
   ModbusStart(&ModbusH);
+
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_RESET);
+  HAL_Delay(2000);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_SET);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -283,7 +287,6 @@ static void MX_TIM4_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM4_Init 1 */
 
@@ -303,32 +306,15 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM4_Init 2 */
 
   /* USER CODE END TIM4_Init 2 */
-  HAL_TIM_MspPostInit(&htim4);
 
 }
 
@@ -387,7 +373,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(DO1_GPIO_Port, DO1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, DO1_Pin|DO2_Pin|DO3_Pin|DO4_Pin
+                          |DO5_Pin|DO6_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
@@ -417,12 +404,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DO7_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : DO1_Pin */
-  GPIO_InitStruct.Pin = DO1_Pin;
+  /*Configure GPIO pins : DO1_Pin DO2_Pin DO3_Pin DO4_Pin
+                           DO5_Pin DO6_Pin */
+  GPIO_InitStruct.Pin = DO1_Pin|DO2_Pin|DO3_Pin|DO4_Pin
+                          |DO5_Pin|DO6_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(DO1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
 
@@ -461,10 +450,63 @@ void StartTask02(void *argument)
   /* Infinite loop */
   for(;;)
   {
+	  //если поступил запрос с modbus
+	  if ( ModbusDATA[0] != 0 ) {
+		  // проверка введенной команды и установка пинов
+	  switch (ModbusDATA[0])
+		  {
+		  case 1: HAL_GPIO_WritePin(DO1_GPIO_Port, DO1_Pin, GPIO_PIN_SET);
+				  break;
+		  case 2: HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_SET);
+				  break;
+		  case 3: HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_SET);
+				  break;
+		  case 4: HAL_GPIO_WritePin(DO6_GPIO_Port, DO4_Pin, GPIO_PIN_SET);
+				  break;
+		  case 5: HAL_GPIO_WritePin(DO6_GPIO_Port, DO5_Pin, GPIO_PIN_SET);
+				  break;
+		  case 6: HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_SET);
+				  break;
+		  case 7: HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_SET);
+				  break;
+		  case 111:
+				  HAL_GPIO_WritePin(DO1_GPIO_Port, DO1_Pin, GPIO_PIN_RESET);
+				  HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_RESET);
+				  HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_RESET);
+				  HAL_GPIO_WritePin(DO4_GPIO_Port, DO4_Pin, GPIO_PIN_RESET);
+				  HAL_GPIO_WritePin(DO5_GPIO_Port, DO5_Pin, GPIO_PIN_RESET);
+				  HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_RESET);
+				  HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_RESET);
+				  break;
+
+		  }
+		  ModbusDATA[0]=0;
+		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+	  }
+
+	//установка регистров в соответствии с состоянием пинов
+		ModbusDATA[1]=	((DO1_GPIO_Port->IDR & DO1_Pin)!=0)|    //HAL_GPIO_ReadPin(DO1_GPIO_Port, DO1_Pin);
+						((DO2_GPIO_Port->IDR & DO2_Pin)!=0)<<1| //HAL_GPIO_ReadPin(DO2_GPIO_Port, DO2_Pin);
+						((DO3_GPIO_Port->IDR & DO3_Pin)!=0)<<2| //HAL_GPIO_ReadPin(DO3_GPIO_Port, DO3_Pin);
+						((DO4_GPIO_Port->IDR & DO4_Pin)!=0)<<3| //HAL_GPIO_ReadPin(DO4_GPIO_Port, DO4_Pin);
+						((DO5_GPIO_Port->IDR & DO5_Pin)!=0)<<4| //HAL_GPIO_ReadPin(DO5_GPIO_Port, DO5_Pin);
+						((DO6_GPIO_Port->IDR & DO6_Pin)!=0)<<5| //HAL_GPIO_ReadPin(DO6_GPIO_Port, DO6_Pin);
+						((DO7_GPIO_Port->IDR & DO7_Pin)!=0)<<6; //HAL_GPIO_ReadPin(DO7_GPIO_Port, DO7_Pin);
+
+		ModbusDATA[2]=	((DI1_GPIO_Port->IDR & DI1_Pin)!=0)| 	//HAL_GPIO_ReadPin(DI1_GPIO_Port, DI1_Pin);
+						((DI2_GPIO_Port->IDR & DI2_Pin)!=0)<<1| //HAL_GPIO_ReadPin(DI2_GPIO_Port, DI2_Pin);
+						((DI3_GPIO_Port->IDR & DI3_Pin)!=0)<<2| //HAL_GPIO_ReadPin(DI3_GPIO_Port, DI3_Pin);
+						((DI4_GPIO_Port->IDR & DI4_Pin)!=0)<<3| //HAL_GPIO_ReadPin(DI4_GPIO_Port, DI4_Pin);
+						((DI5_GPIO_Port->IDR & DI5_Pin)!=0)<<4| //HAL_GPIO_ReadPin(DI5_GPIO_Port, DI5_Pin);
+						((DI6_GPIO_Port->IDR & DI6_Pin)!=0)<<5| //HAL_GPIO_ReadPin(DI6_GPIO_Port, DI6_Pin);
+						((DI7_GPIO_Port->IDR & DI7_Pin)!=0)<<6; //HAL_GPIO_ReadPin(DI7_GPIO_Port, DI7_Pin);
+
+	osDelay(1);
+	/*
     xSemaphoreTake(ModbusH.ModBusSphrHandle , 100);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, ModbusH.au16regs[0] & 0x1);
 	xSemaphoreGive(ModbusH.ModBusSphrHandle);
-    osDelay(200);
+    osDelay(200);*/
   }
   /* USER CODE END StartTask02 */
 }
