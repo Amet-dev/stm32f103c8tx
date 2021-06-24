@@ -62,7 +62,8 @@ const osThreadAttr_t myTaskGpio_attributes = {
   .priority = (osPriority_t) osPriorityLow,
 };
 /* USER CODE BEGIN PV */
-
+modbusHandler_t ModbusH;
+uint16_t ModbusDATA[8];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,7 +116,18 @@ int main(void)
   MX_USART1_UART_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-
+  ModbusH.uiModbusType = SLAVE_RTU;
+  ModbusH.port =  &huart1;
+  ModbusH.u8id = 01; //Modbus slave ID
+  ModbusH.u16timeOut = 1000;
+  ModbusH.EN_Port = NULL;
+  ModbusH.u32overTime = 0;
+  ModbusH.au16regs = ModbusDATA;
+  ModbusH.u16regsize= sizeof(ModbusDATA)/sizeof(ModbusDATA[0]);
+  //Initialize Modbus library
+  ModbusInit(&ModbusH);
+  //Start capturing traffic on serial Port
+  ModbusStart(&ModbusH);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -449,7 +461,10 @@ void StartTask02(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    xSemaphoreTake(ModbusH.ModBusSphrHandle , 100);
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, ModbusH.au16regs[0] & 0x1);
+	xSemaphoreGive(ModbusH.ModBusSphrHandle);
+    osDelay(200);
   }
   /* USER CODE END StartTask02 */
 }
