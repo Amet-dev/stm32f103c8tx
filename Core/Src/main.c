@@ -118,7 +118,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   ModbusH.uiModbusType = SLAVE_RTU;
   ModbusH.port =  &huart1;
-  ModbusH.u8id = 02; //Modbus slave ID
+  ModbusH.u8id = 01; //Modbus slave ID
   ModbusH.u16timeOut = 1000;
   ModbusH.EN_Port = NULL;
   ModbusH.u32overTime = 0;
@@ -388,7 +388,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6|GPIO_PIN_7|DO7_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, DO1_Pin|DO2_Pin|DO3_Pin|DO6_Pin, GPIO_PIN_RESET);
@@ -399,6 +399,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PA6 PA7 DO7_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7|DO7_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DI1_Pin DI2_Pin DI3_Pin DI4_Pin
                            DI5_Pin DI6_Pin */
@@ -413,13 +420,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(DI7_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : DO7_Pin */
-  GPIO_InitStruct.Pin = DO7_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(DO7_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DO1_Pin DO2_Pin DO3_Pin DO6_Pin */
   GPIO_InitStruct.Pin = DO1_Pin|DO2_Pin|DO3_Pin|DO6_Pin;
@@ -499,23 +499,33 @@ void StartTask02(void *argument)
 	  }
 
 	//установка регистров в соответствии с состоянием пинов
-	ModbusDATA[1]=					 HAL_GPIO_ReadPin(DO1_GPIO_Port, DO1_Pin);
-	ModbusDATA[1]=(ModbusDATA[1]<<1)+HAL_GPIO_ReadPin(DO2_GPIO_Port, DO2_Pin);
-	ModbusDATA[1]=(ModbusDATA[1]<<1)+HAL_GPIO_ReadPin(DO3_GPIO_Port, DO3_Pin);
-	ModbusDATA[1]=(ModbusDATA[1]<<1);
-	ModbusDATA[1]=(ModbusDATA[1]<<1);
-	ModbusDATA[1]=(ModbusDATA[1]<<1)+HAL_GPIO_ReadPin(DO6_GPIO_Port, DO6_Pin);
-	ModbusDATA[1]=(ModbusDATA[1]<<1)+HAL_GPIO_ReadPin(DO7_GPIO_Port, DO7_Pin);
+	ModbusDATA[1]=	((DO1_GPIO_Port->IDR & DO1_Pin)   )+ //HAL_GPIO_ReadPin(DO1_GPIO_Port, DO1_Pin);
+					((DO2_GPIO_Port->IDR & DO2_Pin)<<1)+ //HAL_GPIO_ReadPin(DO2_GPIO_Port, DO2_Pin);
+					((DO3_GPIO_Port->IDR & DO3_Pin)<<2)+ //HAL_GPIO_ReadPin(DO3_GPIO_Port, DO3_Pin);
+					((DO4_GPIO_Port->IDR & DO4_Pin)<<3)+ //HAL_GPIO_ReadPin(DO4_GPIO_Port, DO4_Pin);
+					((DO5_GPIO_Port->IDR & DO5_Pin)<<4)+ //HAL_GPIO_ReadPin(DO5_GPIO_Port, DO5_Pin);
+					((DO6_GPIO_Port->IDR & DO6_Pin)<<5)+ //HAL_GPIO_ReadPin(DO6_GPIO_Port, DO6_Pin);
+					((DO7_GPIO_Port->IDR & DO7_Pin)<<6); //HAL_GPIO_ReadPin(DO7_GPIO_Port, DO7_Pin);
 
-	ModbusDATA[2]=					 HAL_GPIO_ReadPin(DI1_GPIO_Port, DI1_Pin);
-	ModbusDATA[2]=(ModbusDATA[2]<<1)+HAL_GPIO_ReadPin(DI2_GPIO_Port, DI2_Pin);
-	ModbusDATA[2]=(ModbusDATA[2]<<1)+HAL_GPIO_ReadPin(DI3_GPIO_Port, DI3_Pin);
-	ModbusDATA[2]=(ModbusDATA[2]<<1)+HAL_GPIO_ReadPin(DI4_GPIO_Port, DI4_Pin);
-	ModbusDATA[2]=(ModbusDATA[2]<<1)+HAL_GPIO_ReadPin(DI5_GPIO_Port, DI5_Pin);
-	ModbusDATA[2]=(ModbusDATA[2]<<1)+HAL_GPIO_ReadPin(DI6_GPIO_Port, DI6_Pin);
-	ModbusDATA[2]=(ModbusDATA[2]<<1)+HAL_GPIO_ReadPin(DI7_GPIO_Port, DI7_Pin);
-
+	ModbusDATA[2]=	((DI1_GPIO_Port->IDR & DI1_Pin)   )+ //HAL_GPIO_ReadPin(DI1_GPIO_Port, DI1_Pin);
+					((DI2_GPIO_Port->IDR & DI2_Pin)<<1)+ //HAL_GPIO_ReadPin(DI2_GPIO_Port, DI2_Pin);
+					((DI3_GPIO_Port->IDR & DI3_Pin)<<2)+ //HAL_GPIO_ReadPin(DI3_GPIO_Port, DI3_Pin);
+					((DI4_GPIO_Port->IDR & DI4_Pin)<<3)+ //HAL_GPIO_ReadPin(DI4_GPIO_Port, DI4_Pin);
+					((DI5_GPIO_Port->IDR & DI5_Pin)<<4)+ //HAL_GPIO_ReadPin(DI5_GPIO_Port, DI5_Pin);
+					((DI6_GPIO_Port->IDR & DI6_Pin)<<5)+ //HAL_GPIO_ReadPin(DI6_GPIO_Port, DI6_Pin);
+					((DI7_GPIO_Port->IDR & DI7_Pin)<<6); //HAL_GPIO_ReadPin(DI7_GPIO_Port, DI7_Pin);
 	osDelay(1);
+ 	/*
+	  HAL_GPIO_TogglePin(DO1_GPIO_Port, DO1_Pin);
+
+	  HAL_GPIO_TogglePin(DO2_GPIO_Port, DO2_Pin);
+
+	  HAL_GPIO_TogglePin(DO3_GPIO_Port, DO3_Pin);
+
+
+
+	osDelay(3000);
+	/*
 	/*
     xSemaphoreTake(ModbusH.ModBusSphrHandle , 100);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, ModbusH.au16regs[0] & 0x1);

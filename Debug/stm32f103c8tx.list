@@ -113,9 +113,9 @@ int main(void)
  8000172:	4b22      	ldr	r3, [pc, #136]	; (80001fc <main+0xac>)
  8000174:	4a22      	ldr	r2, [pc, #136]	; (8000200 <main+0xb0>)
  8000176:	605a      	str	r2, [r3, #4]
-  ModbusH.u8id = 02; //Modbus slave ID
+  ModbusH.u8id = 01; //Modbus slave ID
  8000178:	4b20      	ldr	r3, [pc, #128]	; (80001fc <main+0xac>)
- 800017a:	2202      	movs	r2, #2
+ 800017a:	2201      	movs	r2, #1
  800017c:	721a      	strb	r2, [r3, #8]
   ModbusH.u16timeOut = 1000;
  800017e:	4b1f      	ldr	r3, [pc, #124]	; (80001fc <main+0xac>)
@@ -743,9 +743,9 @@ static void MX_GPIO_Init(void)
  800052c:	f001 f8ab 	bl	8001686 <HAL_GPIO_WritePin>
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6|GPIO_PIN_7|DO7_Pin, GPIO_PIN_RESET);
  8000530:	2200      	movs	r2, #0
- 8000532:	f44f 4100 	mov.w	r1, #32768	; 0x8000
+ 8000532:	f248 01c0 	movw	r1, #32960	; 0x80c0
  8000536:	482c      	ldr	r0, [pc, #176]	; (80005e8 <MX_GPIO_Init+0x138>)
  8000538:	f001 f8a5 	bl	8001686 <HAL_GPIO_WritePin>
 
@@ -775,54 +775,54 @@ static void MX_GPIO_Init(void)
  8000560:	4820      	ldr	r0, [pc, #128]	; (80005e4 <MX_GPIO_Init+0x134>)
  8000562:	f000 ff1f 	bl	80013a4 <HAL_GPIO_Init>
 
-  /*Configure GPIO pins : DI1_Pin DI2_Pin DI3_Pin DI4_Pin
-                           DI5_Pin DI6_Pin */
-  GPIO_InitStruct.Pin = DI1_Pin|DI2_Pin|DI3_Pin|DI4_Pin
- 8000566:	f44f 437c 	mov.w	r3, #64512	; 0xfc00
+  /*Configure GPIO pins : PA6 PA7 DO7_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7|DO7_Pin;
+ 8000566:	f248 03c0 	movw	r3, #32960	; 0x80c0
  800056a:	613b      	str	r3, [r7, #16]
-                          |DI5_Pin|DI6_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
- 800056c:	2300      	movs	r3, #0
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+ 800056c:	2301      	movs	r3, #1
  800056e:	617b      	str	r3, [r7, #20]
   GPIO_InitStruct.Pull = GPIO_NOPULL;
  8000570:	2300      	movs	r3, #0
  8000572:	61bb      	str	r3, [r7, #24]
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 8000574:	2302      	movs	r3, #2
+ 8000576:	61fb      	str	r3, [r7, #28]
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+ 8000578:	f107 0310 	add.w	r3, r7, #16
+ 800057c:	4619      	mov	r1, r3
+ 800057e:	481a      	ldr	r0, [pc, #104]	; (80005e8 <MX_GPIO_Init+0x138>)
+ 8000580:	f000 ff10 	bl	80013a4 <HAL_GPIO_Init>
+
+  /*Configure GPIO pins : DI1_Pin DI2_Pin DI3_Pin DI4_Pin
+                           DI5_Pin DI6_Pin */
+  GPIO_InitStruct.Pin = DI1_Pin|DI2_Pin|DI3_Pin|DI4_Pin
+ 8000584:	f44f 437c 	mov.w	r3, #64512	; 0xfc00
+ 8000588:	613b      	str	r3, [r7, #16]
+                          |DI5_Pin|DI6_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+ 800058a:	2300      	movs	r3, #0
+ 800058c:	617b      	str	r3, [r7, #20]
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 800058e:	2300      	movs	r3, #0
+ 8000590:	61bb      	str	r3, [r7, #24]
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
- 8000574:	f107 0310 	add.w	r3, r7, #16
- 8000578:	4619      	mov	r1, r3
- 800057a:	481c      	ldr	r0, [pc, #112]	; (80005ec <MX_GPIO_Init+0x13c>)
- 800057c:	f000 ff12 	bl	80013a4 <HAL_GPIO_Init>
+ 8000592:	f107 0310 	add.w	r3, r7, #16
+ 8000596:	4619      	mov	r1, r3
+ 8000598:	4814      	ldr	r0, [pc, #80]	; (80005ec <MX_GPIO_Init+0x13c>)
+ 800059a:	f000 ff03 	bl	80013a4 <HAL_GPIO_Init>
 
   /*Configure GPIO pin : DI7_Pin */
   GPIO_InitStruct.Pin = DI7_Pin;
- 8000580:	f44f 7380 	mov.w	r3, #256	; 0x100
- 8000584:	613b      	str	r3, [r7, #16]
+ 800059e:	f44f 7380 	mov.w	r3, #256	; 0x100
+ 80005a2:	613b      	str	r3, [r7, #16]
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
- 8000586:	2300      	movs	r3, #0
- 8000588:	617b      	str	r3, [r7, #20]
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
- 800058a:	2300      	movs	r3, #0
- 800058c:	61bb      	str	r3, [r7, #24]
-  HAL_GPIO_Init(DI7_GPIO_Port, &GPIO_InitStruct);
- 800058e:	f107 0310 	add.w	r3, r7, #16
- 8000592:	4619      	mov	r1, r3
- 8000594:	4814      	ldr	r0, [pc, #80]	; (80005e8 <MX_GPIO_Init+0x138>)
- 8000596:	f000 ff05 	bl	80013a4 <HAL_GPIO_Init>
-
-  /*Configure GPIO pin : DO7_Pin */
-  GPIO_InitStruct.Pin = DO7_Pin;
- 800059a:	f44f 4300 	mov.w	r3, #32768	; 0x8000
- 800059e:	613b      	str	r3, [r7, #16]
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
- 80005a0:	2301      	movs	r3, #1
- 80005a2:	617b      	str	r3, [r7, #20]
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
  80005a4:	2300      	movs	r3, #0
- 80005a6:	61bb      	str	r3, [r7, #24]
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
- 80005a8:	2302      	movs	r3, #2
- 80005aa:	61fb      	str	r3, [r7, #28]
-  HAL_GPIO_Init(DO7_GPIO_Port, &GPIO_InitStruct);
+ 80005a6:	617b      	str	r3, [r7, #20]
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 80005a8:	2300      	movs	r3, #0
+ 80005aa:	61bb      	str	r3, [r7, #24]
+  HAL_GPIO_Init(DI7_GPIO_Port, &GPIO_InitStruct);
  80005ac:	f107 0310 	add.w	r3, r7, #16
  80005b0:	4619      	mov	r1, r3
  80005b2:	480d      	ldr	r0, [pc, #52]	; (80005e8 <MX_GPIO_Init+0x138>)
@@ -1181,7 +1181,6 @@ void StartTask02(void *argument)
  8000826:	b29a      	uxth	r2, r3
  8000828:	4b02      	ldr	r3, [pc, #8]	; (8000834 <StartTask02+0x234>)
  800082a:	809a      	strh	r2, [r3, #4]
-
 	osDelay(1);
  800082c:	2001      	movs	r0, #1
  800082e:	f004 fc47 	bl	80050c0 <osDelay>
