@@ -42,6 +42,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 
 TIM_HandleTypeDef htim4;
 
@@ -62,8 +63,12 @@ const osThreadAttr_t myTaskGpio_attributes = {
   .priority = (osPriority_t) osPriorityLow,
 };
 /* USER CODE BEGIN PV */
+//Переменные_мои
 modbusHandler_t ModbusH;
 uint16_t ModbusDATA[9];
+//ацп
+volatile uint16_t adc[5] = {0,0,0,0,0};
+volatile _Bool flag = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,6 +77,7 @@ static void MX_GPIO_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_ADC2_Init(void);
 void StartDefaultTask(void *argument);
 void StartTask02(void *argument);
 
@@ -81,6 +87,16 @@ void StartTask02(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+//ацп_collback
+/*
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+    if(hadc->Instance == ADC1)
+    {
+    	HAL_ADC_Stop(&hadc1);
+        flag = 1;
+    }
+}*/
 
 /* USER CODE END 0 */
 
@@ -115,6 +131,7 @@ int main(void)
   MX_TIM4_Init();
   MX_USART1_UART_Init();
   MX_ADC1_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
   ModbusH.uiModbusType = SLAVE_RTU;
   ModbusH.port =  &huart1;
@@ -132,6 +149,9 @@ int main(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_RESET);
   HAL_Delay(2000);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_SET);
+//АЦП
+  HAL_ADCEx_Calibration_Start(&hadc1);
+  HAL_ADCEx_Calibration_Start(&hadc2);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -240,7 +260,7 @@ static void MX_ADC1_Init(void)
 
   /* USER CODE END ADC1_Init 0 */
 
-  ADC_ChannelConfTypeDef sConfig = {0};
+  ADC_InjectionConfTypeDef sConfigInjected = {0};
 
   /* USER CODE BEGIN ADC1_Init 1 */
 
@@ -248,7 +268,7 @@ static void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
@@ -258,18 +278,97 @@ static void MX_ADC1_Init(void)
   {
     Error_Handler();
   }
-  /** Configure Regular Channel
+  /** Configure Injected Channel
   */
-  sConfig.Channel = ADC_CHANNEL_0;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_0;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_1;
+  sConfigInjected.InjectedNbrOfConversion = 4;
+  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_7CYCLES_5;
+  sConfigInjected.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
+  sConfigInjected.AutoInjectedConv = DISABLE;
+  sConfigInjected.InjectedDiscontinuousConvMode = DISABLE;
+  sConfigInjected.InjectedOffset = 0;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_1;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_2;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_3;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_3;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_4;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_InjectionConfTypeDef sConfigInjected = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+  /** Common config
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc2.Init.NbrOfConversion = 1;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_4;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_1;
+  sConfigInjected.InjectedNbrOfConversion = 1;
+  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_7CYCLES_5;
+  sConfigInjected.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
+  sConfigInjected.AutoInjectedConv = DISABLE;
+  sConfigInjected.InjectedDiscontinuousConvMode = DISABLE;
+  sConfigInjected.InjectedOffset = 0;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc2, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+
+  /* USER CODE END ADC2_Init 2 */
 
 }
 
@@ -287,7 +386,6 @@ static void MX_TIM4_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM4_Init 1 */
 
@@ -307,32 +405,15 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM4_Init 2 */
 
   /* USER CODE END TIM4_Init 2 */
-  HAL_TIM_MspPostInit(&htim4);
 
 }
 
@@ -388,10 +469,11 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6|GPIO_PIN_7|DO7_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, DO1_Pin|DO2_Pin|DO3_Pin|DO6_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, DO1_Pin|DO2_Pin|DO3_Pin|DO4_Pin
+                          |DO5_Pin|DO6_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
@@ -399,13 +481,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PA6 PA7 DO7_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7|DO7_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DI1_Pin DI2_Pin DI3_Pin DI4_Pin
                            DI5_Pin DI6_Pin */
@@ -421,8 +496,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(DI7_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DO1_Pin DO2_Pin DO3_Pin DO6_Pin */
-  GPIO_InitStruct.Pin = DO1_Pin|DO2_Pin|DO3_Pin|DO6_Pin;
+  /*Configure GPIO pin : DO7_Pin */
+  GPIO_InitStruct.Pin = DO7_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(DO7_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : DO1_Pin DO2_Pin DO3_Pin DO4_Pin
+                           DO5_Pin DO6_Pin */
+  GPIO_InitStruct.Pin = DO1_Pin|DO2_Pin|DO3_Pin|DO4_Pin
+                          |DO5_Pin|DO6_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -476,9 +560,9 @@ void StartTask02(void *argument)
 				  break;
 		  case 3: HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_SET);
 				  break;
-		  case 4: //HAL_GPIO_WritePin(DO6_GPIO_Port, DO4_Pin, GPIO_PIN_SET);
+		  case 4: HAL_GPIO_WritePin(DO6_GPIO_Port, DO4_Pin, GPIO_PIN_SET);
 				  break;
-		  case 5: //HAL_GPIO_WritePin(DO6_GPIO_Port, DO5_Pin, GPIO_PIN_SET);
+		  case 5: HAL_GPIO_WritePin(DO6_GPIO_Port, DO5_Pin, GPIO_PIN_SET);
 				  break;
 		  case 6: HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_SET);
 				  break;
@@ -499,21 +583,48 @@ void StartTask02(void *argument)
 	  }
 
 	//установка регистров в соответствии с состоянием пинов
-	ModbusDATA[1]=	((DO1_GPIO_Port->IDR & DO1_Pin)   )+ //HAL_GPIO_ReadPin(DO1_GPIO_Port, DO1_Pin);
-					((DO2_GPIO_Port->IDR & DO2_Pin)<<1)+ //HAL_GPIO_ReadPin(DO2_GPIO_Port, DO2_Pin);
-					((DO3_GPIO_Port->IDR & DO3_Pin)<<2)+ //HAL_GPIO_ReadPin(DO3_GPIO_Port, DO3_Pin);
-					((DO4_GPIO_Port->IDR & DO4_Pin)<<3)+ //HAL_GPIO_ReadPin(DO4_GPIO_Port, DO4_Pin);
-					((DO5_GPIO_Port->IDR & DO5_Pin)<<4)+ //HAL_GPIO_ReadPin(DO5_GPIO_Port, DO5_Pin);
-					((DO6_GPIO_Port->IDR & DO6_Pin)<<5)+ //HAL_GPIO_ReadPin(DO6_GPIO_Port, DO6_Pin);
-					((DO7_GPIO_Port->IDR & DO7_Pin)<<6); //HAL_GPIO_ReadPin(DO7_GPIO_Port, DO7_Pin);
+	ModbusDATA[1]=	((DO1_GPIO_Port->IDR & DO1_Pin)!=0)|    //HAL_GPIO_ReadPin(DO1_GPIO_Port, DO1_Pin);
+					((DO2_GPIO_Port->IDR & DO2_Pin)!=0)<<1| //HAL_GPIO_ReadPin(DO2_GPIO_Port, DO2_Pin);
+					((DO3_GPIO_Port->IDR & DO3_Pin)!=0)<<2| //HAL_GPIO_ReadPin(DO3_GPIO_Port, DO3_Pin);
+					((DO4_GPIO_Port->IDR & DO4_Pin)!=0)<<3| //HAL_GPIO_ReadPin(DO4_GPIO_Port, DO4_Pin);
+					((DO5_GPIO_Port->IDR & DO5_Pin)!=0)<<4| //HAL_GPIO_ReadPin(DO5_GPIO_Port, DO5_Pin);
+					((DO6_GPIO_Port->IDR & DO6_Pin)!=0)<<5| //HAL_GPIO_ReadPin(DO6_GPIO_Port, DO6_Pin);
+					((DO7_GPIO_Port->IDR & DO7_Pin)!=0)<<6; //HAL_GPIO_ReadPin(DO7_GPIO_Port, DO7_Pin);
 
-	ModbusDATA[2]=	((DI1_GPIO_Port->IDR & DI1_Pin)   )+ //HAL_GPIO_ReadPin(DI1_GPIO_Port, DI1_Pin);
-					((DI2_GPIO_Port->IDR & DI2_Pin)<<1)+ //HAL_GPIO_ReadPin(DI2_GPIO_Port, DI2_Pin);
-					((DI3_GPIO_Port->IDR & DI3_Pin)<<2)+ //HAL_GPIO_ReadPin(DI3_GPIO_Port, DI3_Pin);
-					((DI4_GPIO_Port->IDR & DI4_Pin)<<3)+ //HAL_GPIO_ReadPin(DI4_GPIO_Port, DI4_Pin);
-					((DI5_GPIO_Port->IDR & DI5_Pin)<<4)+ //HAL_GPIO_ReadPin(DI5_GPIO_Port, DI5_Pin);
-					((DI6_GPIO_Port->IDR & DI6_Pin)<<5)+ //HAL_GPIO_ReadPin(DI6_GPIO_Port, DI6_Pin);
-					((DI7_GPIO_Port->IDR & DI7_Pin)<<6); //HAL_GPIO_ReadPin(DI7_GPIO_Port, DI7_Pin);
+	ModbusDATA[2]=	((DI1_GPIO_Port->IDR & DI1_Pin)!=0)| //HAL_GPIO_ReadPin(DI1_GPIO_Port, DI1_Pin);
+					((DI2_GPIO_Port->IDR & DI2_Pin)!=0)<<1| //HAL_GPIO_ReadPin(DI2_GPIO_Port, DI2_Pin);
+					((DI3_GPIO_Port->IDR & DI3_Pin)!=0)<<2| //HAL_GPIO_ReadPin(DI3_GPIO_Port, DI3_Pin);
+					((DI4_GPIO_Port->IDR & DI4_Pin)!=0)<<3| //HAL_GPIO_ReadPin(DI4_GPIO_Port, DI4_Pin);
+					((DI5_GPIO_Port->IDR & DI5_Pin)!=0)<<4| //HAL_GPIO_ReadPin(DI5_GPIO_Port, DI5_Pin);
+					((DI6_GPIO_Port->IDR & DI6_Pin)!=0)<<5| //HAL_GPIO_ReadPin(DI6_GPIO_Port, DI6_Pin);
+					((DI7_GPIO_Port->IDR & DI7_Pin)!=0)<<6; //HAL_GPIO_ReadPin(DI7_GPIO_Port, DI7_Pin);
+	//АЦП_считывание
+	/*HAL_ADC_Start(&hadc1); // запускаем преобразование сигнала АЦП
+	HAL_ADC_PollForConversion(&hadc1, 100); // ожидаем окончания преобразования
+	ModbusDATA[3] = HAL_ADC_GetValue(&hadc1); // читаем полученное значение в переменную adc
+	HAL_ADC_Stop(&hadc1); // останавливаем АЦП (не обязательно)*/
+	/*if (flag){
+		flag=0;
+        HAL_ADC_Stop_DMA(&hadc1); // это необязательно
+        ModbusDATA[3]=(uint16_t)adc[0];
+        ModbusDATA[4]=(uint16_t)adc[1];
+        ModbusDATA[5]=(uint16_t)adc[2];
+        ModbusDATA[6]=(uint16_t)adc[3];
+        adc[0] = 0;
+        adc[1] = 0;
+        adc[2] = 0;
+        adc[3] = 0;
+        HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&adc, 4);
+	}*/
+	HAL_ADCEx_InjectedStart(&hadc1); // запускаем опрос инжект. каналов
+	HAL_ADCEx_InjectedPollForConversion(&hadc1,100); // ждём окончания
+	ModbusDATA[3]=HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_1);
+	ModbusDATA[4]=HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_2);
+	ModbusDATA[5]=HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_3);
+	ModbusDATA[6]=HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_4);
+	HAL_ADCEx_InjectedStart(&hadc2);
+	HAL_ADCEx_InjectedPollForConversion(&hadc2,100);
+	ModbusDATA[7]=HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_1);
 	osDelay(1);
  	/*
 	  HAL_GPIO_TogglePin(DO1_GPIO_Port, DO1_Pin);
@@ -525,12 +636,12 @@ void StartTask02(void *argument)
 
 
 	osDelay(3000);
-	/*
-	/*
+	semafore
     xSemaphoreTake(ModbusH.ModBusSphrHandle , 100);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, ModbusH.au16regs[0] & 0x1);
 	xSemaphoreGive(ModbusH.ModBusSphrHandle);
-    osDelay(200);*/
+    osDelay(200);
+    */
   }
   /* USER CODE END StartTask02 */
 }
