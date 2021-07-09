@@ -132,6 +132,10 @@ int main(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_RESET);
   HAL_Delay(2000);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_SET);
+
+  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
+  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -287,14 +291,15 @@ static void MX_TIM4_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM4_Init 1 */
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 0;
-  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 65535;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
+  htim4.Init.Period = 599;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -306,15 +311,34 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 450;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM2;
+  sConfigOC.Pulse = 150;
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN TIM4_Init 2 */
 
   /* USER CODE END TIM4_Init 2 */
+  HAL_TIM_MspPostInit(&htim4);
 
 }
 
@@ -373,8 +397,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, DO1_Pin|DO2_Pin|DO3_Pin|DO4_Pin
-                          |DO5_Pin|DO6_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, DO1_Pin|DO2_Pin|DO3_Pin|DO6_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
@@ -404,10 +427,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DO7_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DO1_Pin DO2_Pin DO3_Pin DO4_Pin
-                           DO5_Pin DO6_Pin */
-  GPIO_InitStruct.Pin = DO1_Pin|DO2_Pin|DO3_Pin|DO4_Pin
-                          |DO5_Pin|DO6_Pin;
+  /*Configure GPIO pins : DO1_Pin DO2_Pin DO3_Pin DO6_Pin */
+  GPIO_InitStruct.Pin = DO1_Pin|DO2_Pin|DO3_Pin|DO6_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -461,9 +482,9 @@ void StartTask02(void *argument)
 				  break;
 		  case 3: HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_SET);
 				  break;
-		  case 4: HAL_GPIO_WritePin(DO6_GPIO_Port, DO4_Pin, GPIO_PIN_SET);
+		  case 4: //HAL_GPIO_WritePin(DO6_GPIO_Port, DO4_Pin, GPIO_PIN_SET);
 				  break;
-		  case 5: HAL_GPIO_WritePin(DO6_GPIO_Port, DO5_Pin, GPIO_PIN_SET);
+		  case 5: //HAL_GPIO_WritePin(DO6_GPIO_Port, DO5_Pin, GPIO_PIN_SET);
 				  break;
 		  case 6: HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_SET);
 				  break;
@@ -473,8 +494,8 @@ void StartTask02(void *argument)
 				  HAL_GPIO_WritePin(DO1_GPIO_Port, DO1_Pin, GPIO_PIN_RESET);
 				  HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_RESET);
 				  HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_RESET);
-				  HAL_GPIO_WritePin(DO4_GPIO_Port, DO4_Pin, GPIO_PIN_RESET);
-				  HAL_GPIO_WritePin(DO5_GPIO_Port, DO5_Pin, GPIO_PIN_RESET);
+				 // HAL_GPIO_WritePin(DO4_GPIO_Port, DO4_Pin, GPIO_PIN_RESET);
+				 // HAL_GPIO_WritePin(DO5_GPIO_Port, DO5_Pin, GPIO_PIN_RESET);
 				  HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_RESET);
 				  HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_RESET);
 				  break;
@@ -488,8 +509,8 @@ void StartTask02(void *argument)
 		ModbusDATA[1]=	((DO1_GPIO_Port->IDR & DO1_Pin)!=0)|    //HAL_GPIO_ReadPin(DO1_GPIO_Port, DO1_Pin);
 						((DO2_GPIO_Port->IDR & DO2_Pin)!=0)<<1| //HAL_GPIO_ReadPin(DO2_GPIO_Port, DO2_Pin);
 						((DO3_GPIO_Port->IDR & DO3_Pin)!=0)<<2| //HAL_GPIO_ReadPin(DO3_GPIO_Port, DO3_Pin);
-						((DO4_GPIO_Port->IDR & DO4_Pin)!=0)<<3| //HAL_GPIO_ReadPin(DO4_GPIO_Port, DO4_Pin);
-						((DO5_GPIO_Port->IDR & DO5_Pin)!=0)<<4| //HAL_GPIO_ReadPin(DO5_GPIO_Port, DO5_Pin);
+						//((DO4_GPIO_Port->IDR & DO4_Pin)!=0)<<3| //HAL_GPIO_ReadPin(DO4_GPIO_Port, DO4_Pin);
+						//((DO5_GPIO_Port->IDR & DO5_Pin)!=0)<<4| //HAL_GPIO_ReadPin(DO5_GPIO_Port, DO5_Pin);
 						((DO6_GPIO_Port->IDR & DO6_Pin)!=0)<<5| //HAL_GPIO_ReadPin(DO6_GPIO_Port, DO6_Pin);
 						((DO7_GPIO_Port->IDR & DO7_Pin)!=0)<<6; //HAL_GPIO_ReadPin(DO7_GPIO_Port, DO7_Pin);
 
