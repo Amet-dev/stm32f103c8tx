@@ -62,8 +62,11 @@ const osThreadAttr_t myTaskGpio_attributes = {
   .priority = (osPriority_t) osPriorityLow,
 };
 /* USER CODE BEGIN PV */
+//ПЕРЕМЕННЫЕ
 modbusHandler_t ModbusH;
-uint16_t ModbusDATA[9];
+uint16_t ModbusDATA[10];
+uint16_t shim;
+uint16_t frequency_pwm;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -116,6 +119,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+  //ИНИЦИАЛИЗАЦИЯ
   ModbusH.uiModbusType = SLAVE_RTU;
   ModbusH.port =  &huart1;
   ModbusH.u8id = 01; //Modbus slave ID
@@ -135,7 +139,8 @@ int main(void)
 
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
-
+  ModbusDATA[8]=25; //shim
+  frequency_pwm=35999;
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -299,7 +304,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 0;
   htim4.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
-  htim4.Init.Period = 599;
+  htim4.Init.Period = 35999;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -322,15 +327,15 @@ static void MX_TIM4_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 450;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+  sConfigOC.Pulse = 27000;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM2;
-  sConfigOC.Pulse = 150;
+  sConfigOC.Pulse = 9000;
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
@@ -505,6 +510,30 @@ void StartTask02(void *argument)
 		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	  }
 
+	  //управление скважностью ШИМ
+
+	  if ( ModbusDATA[8] != shim ) {
+		  if ( ModbusDATA[8]>45 ){
+			  TIM4->CCR2=(frequency_pwm)-(frequency_pwm/100)*45;
+			  TIM4->CCR3=(frequency_pwm/100)*45;
+			  shim=45;
+			  ModbusDATA[8]=45;
+		  }
+		  else{
+			  TIM4->CCR2=(frequency_pwm)-(frequency_pwm/100)*ModbusDATA[8];
+			  TIM4->CCR3=(frequency_pwm/100)*ModbusDATA[8];
+			  shim=ModbusDATA[8];
+		  }
+	  }
+	  //управление частотой
+	  /*
+	  if ( ModbusDATA[9] != frequency_pwm+1)
+		  if ModbusDATA[9]>100{
+		  frequency_pwm+1=ModbusDATA[9];
+	  htim4.Init.Period = 599;
+		  }
+	  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
+*/
 	//установка регистров в соответствии с состоянием пинов
 		ModbusDATA[1]=	((DO1_GPIO_Port->IDR & DO1_Pin)!=0)|    //HAL_GPIO_ReadPin(DO1_GPIO_Port, DO1_Pin);
 						((DO2_GPIO_Port->IDR & DO2_Pin)!=0)<<1| //HAL_GPIO_ReadPin(DO2_GPIO_Port, DO2_Pin);
