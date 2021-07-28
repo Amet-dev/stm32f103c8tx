@@ -42,7 +42,9 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 
+TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart1;
@@ -66,7 +68,7 @@ const osThreadAttr_t myTaskGpio_attributes = {
 modbusHandler_t ModbusH;
 uint16_t ModbusDATA[10];
 uint16_t shim;
-uint16_t frequency_pwm;
+uint16_t counter_pwm;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,6 +77,8 @@ static void MX_GPIO_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_ADC2_Init(void);
+static void MX_TIM1_Init(void);
 void StartDefaultTask(void *argument);
 void StartTask02(void *argument);
 
@@ -118,6 +122,8 @@ int main(void)
   MX_TIM4_Init();
   MX_USART1_UART_Init();
   MX_ADC1_Init();
+  MX_ADC2_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   //»Ќ»÷»јЋ»«ј÷»я
   ModbusH.uiModbusType = SLAVE_RTU;
@@ -136,11 +142,15 @@ int main(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_RESET);
   HAL_Delay(2000);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_SET);
-
+  HAL_GPIO_WritePin(DO1_GPIO_Port, DO1_Pin, GPIO_PIN_SET);
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
   ModbusDATA[8]=25; //shim
-  frequency_pwm=35999;
+  counter_pwm=599;
+
+  //ацп
+    HAL_ADCEx_Calibration_Start(&hadc1);
+    HAL_ADCEx_Calibration_Start(&hadc2);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -249,7 +259,7 @@ static void MX_ADC1_Init(void)
 
   /* USER CODE END ADC1_Init 0 */
 
-  ADC_ChannelConfTypeDef sConfig = {0};
+  ADC_InjectionConfTypeDef sConfigInjected = {0};
 
   /* USER CODE BEGIN ADC1_Init 1 */
 
@@ -257,8 +267,8 @@ static void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
@@ -267,18 +277,171 @@ static void MX_ADC1_Init(void)
   {
     Error_Handler();
   }
-  /** Configure Regular Channel
+  /** Configure Injected Channel
   */
-  sConfig.Channel = ADC_CHANNEL_0;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_0;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_1;
+  sConfigInjected.InjectedNbrOfConversion = 3;
+  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_13CYCLES_5;
+  sConfigInjected.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
+  sConfigInjected.AutoInjectedConv = DISABLE;
+  sConfigInjected.InjectedDiscontinuousConvMode = DISABLE;
+  sConfigInjected.InjectedOffset = 0;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_1;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_2;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_3;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_InjectionConfTypeDef sConfigInjected = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+  /** Common config
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ScanConvMode = ADC_SCAN_ENABLE;
+  hadc2.Init.ContinuousConvMode = ENABLE;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc2.Init.NbrOfConversion = 1;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_3;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_1;
+  sConfigInjected.InjectedNbrOfConversion = 2;
+  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_13CYCLES_5;
+  sConfigInjected.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
+  sConfigInjected.AutoInjectedConv = DISABLE;
+  sConfigInjected.InjectedDiscontinuousConvMode = DISABLE;
+  sConfigInjected.InjectedOffset = 0;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc2, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Injected Channel
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_4;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc2, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+
+  /* USER CODE END ADC2_Init 2 */
+
+}
+
+/**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 7199;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 9999;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_OC_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
 
 }
 
@@ -304,7 +467,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 0;
   htim4.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
-  htim4.Init.Period = 35999;
+  htim4.Init.Period = 599;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -327,15 +490,15 @@ static void MX_TIM4_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 27000;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.Pulse = 450;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM2;
-  sConfigOC.Pulse = 9000;
+  sConfigOC.Pulse = 150;
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
@@ -511,25 +674,32 @@ void StartTask02(void *argument)
 	  }
 
 	  //управление скважностью Ў»ћ
+	  if ((DI7_GPIO_Port->IDR & DI7_Pin)!=0) {
 
-	  if ( ModbusDATA[8] != shim ) {
-		  if ( ModbusDATA[8]>45 ){
-			  TIM4->CCR2=(frequency_pwm)-(frequency_pwm/100)*45;
-			  TIM4->CCR3=(frequency_pwm/100)*45;
-			  shim=45;
-			  ModbusDATA[8]=45;
+		  if ( ModbusDATA[8] != shim ) {
+			  if ( ModbusDATA[8]>45 ){
+				  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*45;
+				  TIM4->CCR3=(counter_pwm/100)*45;
+				  shim=45;
+				  ModbusDATA[8]=45;
+			  }
+			  else{
+				  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*ModbusDATA[8];
+				  TIM4->CCR3=(counter_pwm/100)*ModbusDATA[8];
+				  shim=ModbusDATA[8];
+			  }
 		  }
-		  else{
-			  TIM4->CCR2=(frequency_pwm)-(frequency_pwm/100)*ModbusDATA[8];
-			  TIM4->CCR3=(frequency_pwm/100)*ModbusDATA[8];
-			  shim=ModbusDATA[8];
-		  }
-	  }
+	 }
+	 	  else{
+	 		 TIM4->CCR2=0;
+	 		 TIM4->CCR3=0;
+	 		ModbusDATA[8]=0;
+	 	  }
 	  //управление частотой
 	  /*
-	  if ( ModbusDATA[9] != frequency_pwm+1)
+	  if ( ModbusDATA[9] != counter_pwm+1)
 		  if ModbusDATA[9]>100{
-		  frequency_pwm+1=ModbusDATA[9];
+		  counter_pwm+1=ModbusDATA[9];
 	  htim4.Init.Period = 599;
 		  }
 	  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
@@ -551,6 +721,16 @@ void StartTask02(void *argument)
 						((DI6_GPIO_Port->IDR & DI6_Pin)!=0)<<5| //HAL_GPIO_ReadPin(DI6_GPIO_Port, DI6_Pin);
 						((DI7_GPIO_Port->IDR & DI7_Pin)!=0)<<6; //HAL_GPIO_ReadPin(DI7_GPIO_Port, DI7_Pin);
 
+		//ацп
+		HAL_ADCEx_InjectedStart(&hadc1); // запускаем опрос инжект. каналов
+		HAL_ADCEx_InjectedPollForConversion(&hadc1,100); // ждЄм окончани€ 100мс
+		ModbusDATA[3]=HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_1);
+		ModbusDATA[4]=HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_2);
+		ModbusDATA[5]=HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_3);
+		HAL_ADCEx_InjectedStart(&hadc2);
+		HAL_ADCEx_InjectedPollForConversion(&hadc2,100);
+		ModbusDATA[6]=HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_1);
+		ModbusDATA[7]=HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
 	osDelay(1);
 	/*
     xSemaphoreTake(ModbusH.ModBusSphrHandle , 100);
