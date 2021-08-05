@@ -145,8 +145,8 @@ int main(void)
   HAL_GPIO_WritePin(DO1_GPIO_Port, DO1_Pin, GPIO_PIN_SET);
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
-  ModbusDATA[8]=25; //shim
-  counter_pwm=599;
+  ModbusDATA[8]=45; //shim
+  counter_pwm=600;
 
   //ацп
     HAL_ADCEx_Calibration_Start(&hadc1);
@@ -673,37 +673,7 @@ void StartTask02(void *argument)
 		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	  }
 
-	  //управление скважностью ШИМ
-	  if ((DI7_GPIO_Port->IDR & DI7_Pin)!=0) {
 
-		  if ( ModbusDATA[8] != shim ) {
-			  if ( ModbusDATA[8]>45 ){
-				  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*45;
-				  TIM4->CCR3=(counter_pwm/100)*45;
-				  shim=45;
-				  ModbusDATA[8]=45;
-			  }
-			  else{
-				  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*ModbusDATA[8];
-				  TIM4->CCR3=(counter_pwm/100)*ModbusDATA[8];
-				  shim=ModbusDATA[8];
-			  }
-		  }
-	 }
-	 	  else{
-	 		 TIM4->CCR2=0;
-	 		 TIM4->CCR3=0;
-	 		ModbusDATA[8]=0;
-	 	  }
-	  //управление частотой
-	  /*
-	  if ( ModbusDATA[9] != counter_pwm+1)
-		  if ModbusDATA[9]>100{
-		  counter_pwm+1=ModbusDATA[9];
-	  htim4.Init.Period = 599;
-		  }
-	  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
-*/
 	//установка регистров в соответствии с состоянием пинов
 		ModbusDATA[1]=	((DO1_GPIO_Port->IDR & DO1_Pin)!=0)|    //HAL_GPIO_ReadPin(DO1_GPIO_Port, DO1_Pin);
 						((DO2_GPIO_Port->IDR & DO2_Pin)!=0)<<1| //HAL_GPIO_ReadPin(DO2_GPIO_Port, DO2_Pin);
@@ -720,7 +690,37 @@ void StartTask02(void *argument)
 						((DI5_GPIO_Port->IDR & DI5_Pin)!=0)<<4| //HAL_GPIO_ReadPin(DI5_GPIO_Port, DI5_Pin);
 						((DI6_GPIO_Port->IDR & DI6_Pin)!=0)<<5| //HAL_GPIO_ReadPin(DI6_GPIO_Port, DI6_Pin);
 						((DI7_GPIO_Port->IDR & DI7_Pin)!=0)<<6; //HAL_GPIO_ReadPin(DI7_GPIO_Port, DI7_Pin);
+		//управление скважностью ШИМ
+			  if ((DI7_GPIO_Port->IDR & DI7_Pin)!=0) {
 
+				  if ( ModbusDATA[8] != shim ) {
+					  if ( ModbusDATA[8]>45 ){
+						  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*45;
+						  TIM4->CCR3=(counter_pwm/100)*45;
+						  shim=45;
+						  ModbusDATA[8]=45;
+					  }
+					  else{
+						  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*ModbusDATA[8];
+						  TIM4->CCR3=(counter_pwm/100)*ModbusDATA[8];
+						  shim=ModbusDATA[8];
+					  }
+				  }
+			 }
+			 	  else{
+			 		 TIM4->CCR2=counter_pwm;
+			 		 TIM4->CCR3=0;
+			 		ModbusDATA[8]=0;
+			 	  }
+			  //управление частотой
+			  /*
+			  if ( ModbusDATA[9] != counter_pwm+1)
+				  if ModbusDATA[9]>100{
+				  counter_pwm+1=ModbusDATA[9];
+			  htim4.Init.Period = 599;
+				  }
+			  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
+		*/
 		//ацп
 		HAL_ADCEx_InjectedStart(&hadc1); // запускаем опрос инжект. каналов
 		HAL_ADCEx_InjectedPollForConversion(&hadc1,100); // ждём окончания 100мс
