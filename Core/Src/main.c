@@ -142,11 +142,13 @@ int main(void)
   ModbusInit(&ModbusH);
   //Start capturing traffic on serial Port
   ModbusStart(&ModbusH);
-/*
+
+  HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_RESET);
   HAL_Delay(1000);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_SET);
-*/
+  HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_RESET);
+
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
 
@@ -728,7 +730,10 @@ void StartTask02(void *argument)
 			 	  else{
 			 		 TIM4->CCR2=counter_pwm;
 			 		 TIM4->CCR3=0;
+			 		HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_RESET);
+			 		HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_RESET);
 			 		ModbusDATA[8]=0;
+			 		HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_SET);
 			 	  }
 			  //управление частотой
 			  /*
