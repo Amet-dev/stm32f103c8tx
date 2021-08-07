@@ -65,6 +65,7 @@ const osThreadAttr_t myTaskGpio_attributes = {
 };
 /* USER CODE BEGIN PV */
 //œ≈–≈Ã≈ÕÕ€≈
+_Bool adc_enable=false;
 modbusHandler_t ModbusH;
 uint16_t ModbusDATA[10];
 uint16_t shim;
@@ -142,15 +143,9 @@ int main(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_RESET);
   HAL_Delay(2000);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_SET);
-  HAL_GPIO_WritePin(DO1_GPIO_Port, DO1_Pin, GPIO_PIN_SET);
-  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
-  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
-  ModbusDATA[8]=45; //shim
-  counter_pwm=600;
 
-  //‡ˆÔ
-    HAL_ADCEx_Calibration_Start(&hadc1);
-    HAL_ADCEx_Calibration_Start(&hadc2);
+
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -621,6 +616,28 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+
+	  if  ( ModbusDATA[0] == 11111 ) {
+		  //ÛÒÚ‡ÌÓ‚Í‡ DO2
+		  HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_SET);
+		  osDelay(8000);
+		  HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_SET);
+		  osDelay(150);
+		  HAL_GPIO_WritePin(DO1_GPIO_Port, DO1_Pin, GPIO_PIN_SET);
+		  adc_enable=true;
+	  }
+	  else {
+	  }
+/*
+	  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
+	  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
+	  ModbusDATA[8]=45; //shim
+	  counter_pwm=600;
+
+	  //‡ˆÔ
+	    HAL_ADCEx_Calibration_Start(&hadc1);
+	    HAL_ADCEx_Calibration_Start(&hadc2);
+	    */
     osDelay(1);
   }
   /* USER CODE END 5 */
