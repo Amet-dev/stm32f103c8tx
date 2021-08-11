@@ -1,3 +1,4 @@
+
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
@@ -68,11 +69,15 @@ const osThreadAttr_t myTaskGpio_attributes = {
 
 modbusHandler_t ModbusH;
 uint16_t ModbusDATA[10];
-uint16_t shim;
+uint16_t shim=0;
 uint16_t counter_pwm=600;
-
-
+const uint16_t  i_nakal_min=3000,
+				i4=0,
+				u_dc_min=2980,
+				u_dc_max=3350,
+				t1=1860;
 _Bool adc_enable=false;
+//регистр модбас код ошибки
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -151,7 +156,8 @@ int main(void)
 
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_3);
-
+  HAL_ADCEx_Calibration_Start(&hadc1);
+  HAL_ADCEx_Calibration_Start(&hadc2);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -633,20 +639,33 @@ void StartDefaultTask(void *argument)
 	  				  break;
 	  		  case 3: HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_SET);
 	  				  break;
-	  		  case 4: //HAL_GPIO_WritePin(DO6_GPIO_Port, DO4_Pin, GPIO_PIN_SET);
-	  				  break;
-	  		  case 5: //HAL_GPIO_WritePin(DO6_GPIO_Port, DO5_Pin, GPIO_PIN_SET);
-	  				  break;
 	  		  case 6: HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_SET);
 	  				  break;
 	  		  case 7: HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_SET);
 	  				  break;
+	  		 case 9:
+	  			 TIM4->CCR2=counter_pwm;
+	  		TIM4->CCR3=0;
+	  		HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_RESET);
+	  		HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_RESET);
+	  		ModbusDATA[8]=0;
+	  		HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_SET);
+	  			  	break;
+
+	  		case 11: HAL_GPIO_WritePin(DO1_GPIO_Port, DO1_Pin, GPIO_PIN_RESET);
+	  			  	break;
+	  		case 12: HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_RESET);
+	  			  	break;
+	  		case 13: HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_RESET);
+	  			  	break;
+	  		case 16: HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_RESET);
+	  			  	break;
+	  		case 17: HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_RESET);
+	  			  	break;
 	  		  case 111:
 	  				  HAL_GPIO_WritePin(DO1_GPIO_Port, DO1_Pin, GPIO_PIN_RESET);
 	  				  HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_RESET);
 	  				  HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_RESET);
-	  				 // HAL_GPIO_WritePin(DO4_GPIO_Port, DO4_Pin, GPIO_PIN_RESET);
-	  				 // HAL_GPIO_WritePin(DO5_GPIO_Port, DO5_Pin, GPIO_PIN_RESET);
 	  				  HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_RESET);
 	  				  HAL_GPIO_WritePin(DO7_GPIO_Port, DO7_Pin, GPIO_PIN_RESET);
 	  				  break;
@@ -665,20 +684,53 @@ void StartDefaultTask(void *argument)
 	  		  ModbusDATA[0]=0;
 	  		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	  	  }
+	  	//управление скважностью ШИМ
+
+			  if ( ModbusDATA[8] != shim ) {
+				  if ( ModbusDATA[8]>45 ){
+/*
+					  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*45;
+					  TIM4->CCR3=(counter_pwm/100)*45;
+					  shim=45;*/
+					  ModbusDATA[8]=45;
+				  }
+				  else{
+					  while (shim<ModbusDATA[8]){
+						  shim++;
+						  if (shim>45){shim=45;}
+						  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*shim;
+						  TIM4->CCR3=(counter_pwm/100)*shim;
+						  osDelay(1);
+					  }
+					  while (shim>ModbusDATA[8]){
+						  shim--;
+						  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*shim;
+						  TIM4->CCR3=(counter_pwm/100)*shim;
+						  osDelay(1);
+					  }
+
+				  }
 
 /*
-
-
-	  //ацп
-	    HAL_ADCEx_Calibration_Start(&hadc1);
-	    HAL_ADCEx_Calibration_Start(&hadc2);
-	    */
+					  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*ModbusDATA[8];
+					  TIM4->CCR3=(counter_pwm/100)*ModbusDATA[8];
+*/
+			  }
+  	  	  	  if ((DI7_GPIO_Port->IDR & DI7_Pin)==0) {
+  	  	  	TIM4->CCR2=counter_pwm;
+  	  	  		TIM4->CCR3=0;
+  	  	  		HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_RESET);
+  	  	  		HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_RESET);
+  	  	  		ModbusDATA[8]=0;
+  	  	  		HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_SET);
+			  }
     osDelay(1);
   }
   /* USER CODE END 5 */
 }
 
 /* USER CODE BEGIN Header_StartTask02 */
+
 /**
 * @brief Function implementing the myTaskGpio thread.
 * @param argument: Not used
@@ -691,7 +743,14 @@ void StartTask02(void *argument)
   /* Infinite loop */
   for(;;)
   {
-
+	  if ((DI7_GPIO_Port->IDR & DI7_Pin)==0){
+		  TIM4->CCR2=counter_pwm;
+		  	TIM4->CCR3=0;
+		  	HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_RESET);
+		  	HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_RESET);
+		  	ModbusDATA[8]=0;
+		  	HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_SET);
+	  }
 
 
 	//установка регистров в соответствии с состоянием пинов
@@ -710,31 +769,7 @@ void StartTask02(void *argument)
 						((DI5_GPIO_Port->IDR & DI5_Pin)!=0)<<4| //HAL_GPIO_ReadPin(DI5_GPIO_Port, DI5_Pin);
 						((DI6_GPIO_Port->IDR & DI6_Pin)!=0)<<5| //HAL_GPIO_ReadPin(DI6_GPIO_Port, DI6_Pin);
 						((DI7_GPIO_Port->IDR & DI7_Pin)!=0)<<6; //HAL_GPIO_ReadPin(DI7_GPIO_Port, DI7_Pin);
-		//управление скважностью ШИМ
-			  if ((DI7_GPIO_Port->IDR & DI7_Pin)!=0) {
 
-				  if ( ModbusDATA[8] != shim ) {
-					  if ( ModbusDATA[8]>45 ){
-						  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*45;
-						  TIM4->CCR3=(counter_pwm/100)*45;
-						  shim=45;
-						  ModbusDATA[8]=45;
-					  }
-					  else{
-						  TIM4->CCR2=(counter_pwm)-(counter_pwm/100)*ModbusDATA[8];
-						  TIM4->CCR3=(counter_pwm/100)*ModbusDATA[8];
-						  shim=ModbusDATA[8];
-					  }
-				  }
-			 }
-			 	  else{
-			 		 TIM4->CCR2=counter_pwm;
-			 		 TIM4->CCR3=0;
-			 		HAL_GPIO_WritePin(DO3_GPIO_Port, DO3_Pin, GPIO_PIN_RESET);
-			 		HAL_GPIO_WritePin(DO2_GPIO_Port, DO2_Pin, GPIO_PIN_RESET);
-			 		ModbusDATA[8]=0;
-			 		HAL_GPIO_WritePin(DO6_GPIO_Port, DO6_Pin, GPIO_PIN_SET);
-			 	  }
 			  //управление частотой
 			  /*
 			  if ( ModbusDATA[9] != counter_pwm+1)
